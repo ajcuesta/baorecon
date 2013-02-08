@@ -192,6 +192,7 @@ int main(int argc, char *args[]) {
           // We need q.p/|r|
 //          gpp.RadialDisplace(qx, qy, qz, pars.recon.origin, -pars.recon.fval);
 //          gpp.RadialDisplace(qx, qy, qz, pars.recon.origin, -0.7523);
+// Note that here you should use the value of the fval parameter of the input2 file (0.0 if it is a random catalog)
           gpp.RadialDisplace(qx, qy, qz, pars.recon.origin, -0.0);
 	  PetscPrintf(PETSC_COMM_WORLD, "radial zspace displacements complete\n");
         }
