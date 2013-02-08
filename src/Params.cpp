@@ -168,6 +168,7 @@ LasDamasParams::LasDamasParams(string configfn, string fntype) : Params(configfn
     ticpp::Iterator< ticpp::Element > iter(fntype);
     for (iter = iter.begin(root); iter != iter.end(); ++iter) {
       fn1.indata = iter->FirstChildElement("indata")->GetText();
+      fn1.indata2 = iter->FirstChildElement("indata2")->GetText();
       fn1.outdata = iter->FirstChildElement("outdata")->GetText();
       fn1.inrand = iter->FirstChildElement("inrand")->GetText();
       fn1.outrand = iter->FirstChildElement("outrand")->GetText();

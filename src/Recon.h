@@ -146,7 +146,7 @@ class LasDamasParams : public Params {
 
 
     struct fn {
-      string indata, outdata;
+      string indata, indata2, outdata;
       string inrand, outrand;
     };
     list<fn> fnlist;
@@ -197,10 +197,11 @@ class Particle {
     int npart; // Note 32-bit integer here for particle number
     Vec px,py,pz; // PETSc vectors to store the particle positions
     Vec pw; // PETSc vector to store particle weights
+    Vec pn; // PETSc vector to store particle ids
 
     // Constructors and destructors 
     Particle(const Particle& p);
-    Particle() {npart=0; px=py=pz=pw=PETSC_NULL;};
+    Particle() {npart=0; px=py=pz=pw=pn=PETSC_NULL;};
     ~Particle();
 
     // IO routines

@@ -91,6 +91,7 @@ int main(int argc, char *args[]) {
        * ********************************/
       ostringstream hdr;
       hdr << "# Input data file is " << files->indata << endl; 
+      hdr << "# Input data file is " << files->indata2 << endl;
       hdr << "# Output data file is " << files->outdata << endl;
       hdr << "# Input random file is " << files->inrand << endl; 
       hdr << "# Output rand file is " << files->outrand << endl;
@@ -153,35 +154,45 @@ int main(int argc, char *args[]) {
          ************************************************/
         // Generate random particles
         Vec dp, qx, qy, qz;
-        
+        Particle gpp;
+        gpp.AsciiReadWeightedSerial(files->indata2.c_str());
+        // Translate for reconstruction
+        VecShift(gpp.px, pars.recon.origin[0]);
+        VecShift(gpp.py, pars.recon.origin[1]);
+        VecShift(gpp.pz, pars.recon.origin[2]);
+        PetscPrintf(PETSC_COMM_WORLD,"Read in %i particles.....\n",gpp.npart);
+        gpp.SlabDecompose(dg);
+
         // Compute derivatives at data positions and shift
-        dp = dg.Deriv(pot, 0); qx = dg.Interp3d(dp, pp); _mydestroy(dp);
-        dp = dg.Deriv(pot, 1); qy = dg.Interp3d(dp, pp); _mydestroy(dp);
-        dp = dg.Deriv(pot, 2); qz = dg.Interp3d(dp, pp); _mydestroy(dp);
+        dp = dg.Deriv(pot, 0); qx = dg.Interp3d(dp, gpp); _mydestroy(dp);
+        dp = dg.Deriv(pot, 1); qy = dg.Interp3d(dp, gpp); _mydestroy(dp);
+        dp = dg.Deriv(pot, 2); qz = dg.Interp3d(dp, gpp); _mydestroy(dp);
         // Print some statistics
         double sum[3];
         VecSum(qx,&sum[0]); VecSum(qy, &sum[1]); VecSum(qz, &sum[2]);
-        for (int ii=0; ii < 3; ++ii) sum[ii] /= pp.npart;
+        for (int ii=0; ii < 3; ++ii) sum[ii] /= gpp.npart;
         PetscPrintf(PETSC_COMM_WORLD, "Mean x,y,z displacements on particles is : %10.4f,%10.4f,%10.4f\n",sum[0],sum[1],sum[2]);
         VecNorm(qx,NORM_2,&sum[0]); VecNorm(qy, NORM_2,&sum[1]); VecNorm(qz, NORM_2,&sum[2]);
-        for (int ii=0; ii < 3; ++ii) sum[ii] /= sqrt(pp.npart);
+        for (int ii=0; ii < 3; ++ii) sum[ii] /= sqrt(gpp.npart);
         PetscPrintf(PETSC_COMM_WORLD, "RMS x,y,z displacements on particles is : %10.4f,%10.4f,%10.4f\n",sum[0],sum[1],sum[2]);
         
         // Shift the particles
-        VecAXPY(pp.px, -1.0, qx);
-        VecAXPY(pp.py, -1.0, qy);
-        VecAXPY(pp.pz, -1.0, qz);
+        VecAXPY(gpp.px, -1.0, qx);
+        VecAXPY(gpp.py, -1.0, qy);
+        VecAXPY(gpp.pz, -1.0, qz);
 	PetscPrintf(PETSC_COMM_WORLD, "Standard displacements complete\n");
 
 
         if (pars.recon.planeparallel == 1) {
           // This case is simple!
-          VecAXPY(pp.pz, -1.0, qz);
+          VecAXPY(gpp.pz, -1.0, qz);
 	  PetscPrintf(PETSC_COMM_WORLD, "plane parallel zspace displacements complete\n");
         } else {
           // Now shift to remove redshift distortions - this requires a little coordinate geometry
           // We need q.p/|r|
-          pp.RadialDisplace(qx, qy, qz, pars.recon.origin, -pars.recon.fval);
+//          gpp.RadialDisplace(qx, qy, qz, pars.recon.origin, -pars.recon.fval);
+//          gpp.RadialDisplace(qx, qy, qz, pars.recon.origin, -0.7523);
+          gpp.RadialDisplace(qx, qy, qz, pars.recon.origin, -0.0);
 	  PetscPrintf(PETSC_COMM_WORLD, "radial zspace displacements complete\n");
         }
 
@@ -207,9 +218,9 @@ int main(int argc, char *args[]) {
 
         // Before writing the particles out, shift them to such that the observer is at (0,0,0)
         // This simplifies calculating perpendicular and parallel correlation functions
-        VecShift(pp.px, -pars.recon.origin[0]);
-        VecShift(pp.py, -pars.recon.origin[1]);
-        VecShift(pp.pz, -pars.recon.origin[2]);
+        VecShift(gpp.px, -pars.recon.origin[0]);
+        VecShift(gpp.py, -pars.recon.origin[1]);
+        VecShift(gpp.pz, -pars.recon.origin[2]);
         // Do the same to the shifted randoms
         VecShift(pr.px, -pars.recon.origin[0]);
         VecShift(pr.py, -pars.recon.origin[1]);
@@ -219,7 +230,7 @@ int main(int argc, char *args[]) {
 
         
         // Write out files
-        pp.AsciiWriteWeightedSerial(files->outdata.c_str());
+        gpp.AsciiWriteWeightedSerial(files->outdata.c_str());
         pr.AsciiWriteWeightedSerial(files->outrand.c_str());
       }
       // Cleanup
